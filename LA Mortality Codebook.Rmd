@@ -1,0 +1,207 @@
+---
+Title: "LA Mortality Tutorial 2"
+author: "Aidan Clements"
+date: February 20, 2024
+output: pdf_document
+---
+Loading readr and diplyr
+```{r}
+library(readr)
+library(dplyr)
+```
+
+I am uploading load the LA Mortality File into RStudio 
+```{r}
+la_mort <- read_csv("https://www.dropbox.com/scl/fi/fzsnhfd3lq80v2o3sag6c/la_mort.csv?rlkey=h1vyjm2b8ppgejgsg3e8evm7i&dl=1")
+```
+
+LA Mortality File Codebook: 
+
+###*restatus*, resident status
+
+- 1= state and county of occurrence and residence are the same
+- 2= state of occurrence and residence are the same, but county is different
+- 3= state of occurrence and residence are different, but both in U.S.
+- 4= state of occurrence is U.S. but residence is outside U.S.
+
+### *stocr*, state of occurrence
+- Abbreviation for state where death occurred
+
+### *cntyocr*, county of occcurrence
+- Abrreviation for county where death occurred
+
+### *popcntyocr*, population of county of occurrence
+Population Size of County of Occurrence
+Based on the results of the 2000 Census
+- 0 ... County of 1,000,000 or more
+- 1 ... County of 500,000 to 1,000,000
+- 2 ... County of 250,000 to 500,000
+- 3 ... County of 100,000 to 250,000 9
+- 9 ... County of less than 100,000 
+
+### *strsd*, state of residence
+- Abbreviation for state of residence of individual death 
+
+### *cntyrsd*, country of residence 
+- Abbreviation for county of residence of individual death 
+
+### *popcntyrsd*, population size of country of residence
+Population Size of County of Residence
+Based on the results of the 2000 Census
+- 0 ... County of 1,000,000 or more
+- 1 ... County of 500,000 to 1,000,000
+- 2 ... County of 250,000 to 500,000
+- 3 ... County of 100,000 to 250,000
+- 9 ... County of less than100,000
+- Z ... Foreign residents 
+
+### *stbrth*, State of birth
+
+### *birthr*, state of birth recode
+
+### *educ1989*, education level (1989 revision)
+Education (1989 revision)
+- 00: no formal education
+- 01-08: Years of elementary school
+- 91: year of high school
+- 10: 2 years of high school
+- 11: 3 years of high school
+- 12 4 years of high school
+- 13: 1 year of college
+- 14: 2 years of college
+- 15: 3 years of college
+- 16: 4 years of college
+- 17: 5 or more years of college
+- 99: not stated
+
+### *educ2003*, education level (2003 revision)
+- 1: 8th grade or less
+- 2: 9 - 12th grade, no diploma
+- 3 high school graduate or GED completed
+- 4: some college credit, but no degree
+- 5: Associate degree
+- 6: Bachelor’s degree
+- 7: Master’s degree
+- 8: Doctorate or professional degree
+- 9: Unknown
+
+### *educflag*, Education reporting flag
+- 0 1989 revision of education item on certificate
+- 1 2003 revision of education item on certificate
+- 2 no education item on certificate 
+
+### *monthdth*, Month of Death
+-1: January
+-2: February etc.
+
+### *sex*, Sex
+- sex of individual who died
+
+### *age*, Age at death
+Four positions are used to code detail age. Location 70 identifies age in years, months, days, etc. Locations 71-73 are the number of years, months, days, etc.
+- 1: Years. 001-135,999
+- 2: Months 001-011,999
+- 4: Days 001-027,999
+- 5: Hours 001-023,999
+- 6: Minutes 001-059,999
+- 9: Age not stated 999
+
+### *placdth*, Place of death and decendent's status
+Hospital, clinic or Medical Center
+- 1: Inpatient
+- 2: Hospital, Clinic or Medical Center- Outpatient or admitted to Emergency Room 
+- 3: Hospital, Clinic or Medical Center- Dead on Arrival
+- 4: Decedent’s home
+- 5:  Hospice facility
+- 6: Nursing home/long term care
+- 7:  Other
+- 9: Place of death unknown
+
+### *marstat*, Marital Status
+- S: Never married, single
+- M: Married
+- W: Widowed
+- D: Divorced
+- U: Marital Status unknown
+
+### *weekday*, Day of Week of Death
+- 1:Sunday
+- 2: Monday
+- 3: Tuesday
+- 4: Wednesday
+- 5: Thursday
+- 6: Friday
+- 7: Saturday
+- 9: Unknown
+
+### *year*, Current Data Year
+
+### *mandeath*, Manner of Death
+- 1: Accident
+- 2: Suicide
+- 3: Homicide
+- 4: Pending investigation
+- 5: could not determine
+- 6: self-inflicted
+- 7: natural
+- Blank: Not Specified
+
+### *prgnt*, Pregnancy Tag
+
+### *ucod*, Underlying Cause of Death (ICD code 10)
+
+### *ucr358*, 358 cause recode
+
+### *ucr113*, 113 cause recode
+
+### *race*, Bridged Race
+- 01: White
+- 02: Black
+- 03: American Indian
+- 04: Chinese
+- 05: Japanese
+- 06: Hawaiian
+- 07: Filipino
+- 18: Asian indian
+- 28: Korean
+- 38: Samoan
+- 48: Vietnamese
+- 58: Guamanian
+- 68: Other asian or pacific islander
+- 78: combined other asian or pacific islander
+
+### *racer3*, race recode 3
+- 1: white
+- 2: races other than white or black
+- 3: Black
+
+### *racer5*, race recode 5
+- 0: Other (Puerto Rican Only)
+- 1: White
+- 2: Black
+- 3: American Indian
+- 4: Asian or Pacific Islander
+
+### *hispanic*, hispanic origin
+- 100-199: Non-Hispanic
+- 200-209: Spaniard
+- 210-219: Mexican
+- 260-269: Puerto Rican
+- 270-274: Cuban
+- 275-279: Dominican
+- 220: Central and South American
+- 221-230: Central American
+- 231-249: South American
+- 250-259: Latin American
+- 280-299: Other Hispanic
+- 996-999: Unknown
+
+
+
+
+
+
+
+
+
+
