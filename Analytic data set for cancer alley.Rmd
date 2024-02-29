@@ -1,0 +1,152 @@
+---
+Title: "LA Mortality Analytic Data Set"
+author: "Aidan Clements"
+date: February 22, 2024
+output: pdf_document
+---
+```{r}
+library(readr)
+la_mort <- 
+  read_csv("https://www.dropbox.com/scl/fi/fzsnhfd3lq80v2o3sag6c/la_mort.csv?rlkey=h1vyjm2b8ppgejgsg3e8evm7i&dl=1")
+```
+From the la_mort data, I am taking the counties that are considered part of "cancer alley"
+```{r}
+la_mort$cancer_parish <- ifelse(la_mort$cntyrsd %in% c(5, 33, 47, 51, 71, 89, 93, 95, 121), 1, 0)
+```
+Here I am producing a table that looks at numbers for each county code
+```{r}
+la_mort$cancer_parish <- ifelse(la_mort$cntyrsd %in% c(5, 33, 47, 51, 71, 89, 93, 95, 121), 1, 0)
+table(la_mort$cancer_parish)
+table(la_mort$cntyrsd[la_mort$cancer_parish == 1])
+```
+here I am filtering for cancer deaths specifically
+```{r}
+la_mort$cancer39 <- ifelse(la_mort$ucr39 %in% c(5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15), 1, 0)
+table(la_mort$cancer39)
+```
+```{r}
+la_mort$cancer113 <- ifelse(la_mort$ucr113 %in% c(20:44), 1,0)
+table(la_mort$cancer113)
+```
+```{r}
+library(dplyr)
+```
+```{r}
+parish_count <- la_mort%>%
+  group_by(cntyrsd, cancer_parish, year) %>%
+  summarize(cancer39 = sum(cancer39, na.rm = TRUE))
+summary(parish_count$cancer39)
+```
+```{r}
+la_pop <- 
+  read_csv("https://www.dropbox.com/scl/fi/650k1obpczky6bwa19ex6/la_county_pop.csv?rlkey=0aokd9m76q7mxwus97uslsx7g&dl=1")
+parish_count <- parish_count %>%
+  rename(county = cntyrsd)
+la_joined <- parish_count %>%
+  inner_join(la_pop, by = c("county", "year"))
+la_joined_all <- subset(la_joined, agegrp == "all")
+la_joined_all$cancer_rate_total <- (la_joined_all$cancer39) / (la_joined_all$tot_pop)
+summary(la_joined_all$cancer_rate_total)
+la_joined_all$cancer_rate_total <- ((la_joined_all$cancer39) / (la_joined_all$tot_pop / 100000))
+parish_cancer_2019 <- subset(la_joined_all, year == 2019)
+library(knitr)
+kable(parish_cancer_2019[, c("county", "cancer_rate_total")])
+```
+Now I will begin the second part of this data set:
+This step is creating an indicator if a parish is in cancer alley
+```{r}
+la_mort$cancer_parish <- ifelse(la_mort$cntyrsd %in% c(5, 33, 47, 51, 71, 89, 93, 95, 121), 1, 0)
+```
+Then we’ll create an indicator for a cancer death:
+```{r}
+la_mort$cancer39 <- ifelse(la_mort$ucr39 %in% c(5:15), 1, 0)
+```
+age-specific counts of parish-level cancer deaths. 
+```{r}
+library(dplyr)
+la_mort_age <- la_mort %>%
+  filter(age != 9999)
+la_mort_age$age <- ifelse(la_mort_age$age < 2000, la_mort_age$age - 1000, 0)
+```
+Filtering out non-responses and changing the age to be standardized
+```{r}
+age_breaks <- c(0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, Inf)
+age_labels <- c("0_4", "5_9", "10_14", "15_19", "20_24", "25_29", "30_34", "35_39", 
+                "40_44", "45_49", "50_54", "55_59", "60_64", "65_69", "70_74", 
+                "75_79", "80_84", "85+")
+la_mort_age$agegrp <- as.character(cut(la_mort_age$age, breaks = age_breaks, labels = age_labels, right = FALSE))
+```
+Creating an aggregate data frame so that we aggregate to the parish-age-year level instead of just the parish-year level
+```{r}
+parish_count_age <- la_mort_age %>%
+  group_by(cntyrsd, cancer_parish, agegrp, year) %>%
+  summarize(cancer39 = sum(cancer39, na.rm = TRUE))
+```
+Now I will load la_pop data frame
+```{r}
+la_pop <- 
+  read_csv("https://www.dropbox.com/scl/fi/650k1obpczky6bwa19ex6/la_county_pop.csv?rlkey=0aokd9m76q7mxwus97uslsx7g&dl=1")
+```
+account for the different key variable names (cntyrsd and county) and because we now have a new key variable to include: agegrp
+```{r}
+la_joined <- parish_count_age %>%
+  inner_join(la_pop, by = c("cntyrsd" = "county", "year", "agegrp"))
+```
+Joining standard population age data frame with la_joined
+```{r}
+stnrd_pop <- 
+  read_csv("https://www.dropbox.com/scl/fi/xzd2o5lza237so6vamqwb/stnrd_pop.csv?rlkey=zp90au2tuq6eptvi1yiyjfzua&dl=1")
+la_joined_stnrd <- la_joined %>%
+  inner_join(stnrd_pop, by = "agegrp")
+```
+Calculating population weights
+```{r}
+la_joined_stnrd$stnrd_pop_weight <- (la_joined_stnrd$stnrd_pop) / (sum(stnrd_pop$stnrd_pop))
+```
+Applying standard population weights but rates will be age-specific and we’ll multiply the rates by the stnrd_pop_weight variable
+```{r}
+la_joined_stnrd$cancer_rate_adj <- ((la_joined_stnrd$cancer39) / (la_joined_stnrd$tot_pop / 100000)) * la_joined_stnrd$stnrd_pop_weight
+```
+aggregate over age groups to get the age-adjusted parish level cancer mortality rate. We can do that as follows
+```{r}
+parish_rates <- la_joined_stnrd %>%
+  group_by(cntyrsd, cancer_parish, year) %>%
+  summarize(cancer_rate_adj = sum(cancer_rate_adj, na.rm = TRUE), cancer39 = sum(cancer39), tot_pop = 
+              sum(tot_pop))
+parish_rates$cancer_rate_crude <- (parish_rates$cancer39) / (parish_rates$tot_pop / 100000)
+```
+Let’s take a look at differences between crude and adjusted cancer rates. First the crude data:
+```{r}
+parish_cancer_2019 <- subset(la_joined_all, year == 2019)
+library(knitr)
+kable(parish_cancer_2019[, c("county", "cancer_rate_total")])
+```
+Now the age-adjusted Data:
+```{r}
+parish_cancer_2019 <- subset(parish_rates, year == 2019)
+kable(parish_cancer_2019[, c("cntyrsd", "cancer_rate_crude", "cancer_rate_adj")])
+```
+Creating population weights for country size:
+```{r}
+parish_rates$pop_weight <- (parish_rates$cancer_rate_adj) * (parish_rates$tot_pop)
+cancer_alley_rates <- parish_rates %>%
+  group_by(cancer_parish, year) %>%
+  summarize(cancer_rate_adj_wt = sum(pop_weight) / sum(tot_pop))
+```
+create a table to compare annual cancer mortality rates for Cancer Alley and non-Cancer Alley parishes:
+```{r}
+kable(cancer_alley_rates)
+```
+we can split the cancer_alley_rates data frame by the cancer_parish indicator and then join the two data frames back together:
+```{r}
+cancer_alley <- 
+  subset(cancer_alley_rates, cancer_parish == 1, select = c(cancer_rate_adj_wt, year)) %>%
+  rename(cancer_alley_rate = cancer_rate_adj_wt)
+no_cancer_alley <- 
+  subset(cancer_alley_rates, cancer_parish == 0, select = c(cancer_rate_adj_wt, year)) %>%
+  rename(no_cancer_alley_rate = cancer_rate_adj_wt)
+cancer_alley_table <- cancer_alley %>%
+  inner_join(no_cancer_alley, by = "year")
+cancer_alley_table <- cancer_alley_table[,c("year", "cancer_alley_rate", "no_cancer_alley_rate")]
+kable(cancer_alley_table)
+```
